@@ -8,7 +8,6 @@ import 'package:driverspy/widgets/sbi_screen_widgets/custom_elevated_button.dart
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 class SearchByImage extends ConsumerStatefulWidget {
@@ -31,70 +30,31 @@ class _SearchByImageState extends ConsumerState<SearchByImage> {
   Future<void> _pickImageFromGallery() async {
     final pickedFile =
         await ImagePicker().pickImage(source: ImageSource.gallery);
-
-    if (pickedFile == null) return;
-
-    final croppedFile = await ImageCropper().cropImage(
-      sourcePath: pickedFile.path,
-      compressFormat: ImageCompressFormat.jpg,
-      compressQuality: 100,
-      uiSettings: [
-        AndroidUiSettings(
-          toolbarTitle: 'Crop and save',
-          toolbarColor: Colors.deepOrange,
-          toolbarWidgetColor: Colors.white,
-          initAspectRatio: CropAspectRatioPreset.original,
-          lockAspectRatio: false,
-        ),
-        IOSUiSettings(
-          title: 'crop and save',
-        ),
-      ],
-    );
-
-    if (croppedFile == null) return;
-    final imageFile = File(croppedFile.path);
-    final base64 = await convertBase64(imageFile);
-
-    setState(() {
-      _selectedImage = File(croppedFile.path);
-      base64String = base64;
-    });
+    if (pickedFile != null) {
+      final imageFile = File(pickedFile.path);
+      final base64 = await convertBase64(imageFile);
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+        base64String = base64;
+      });
+    } else {
+      return;
+    }
   }
 
   Future _pickImageFromCamera() async {
     final pickedFile =
         await ImagePicker().pickImage(source: ImageSource.camera);
-
-    if (pickedFile == null) return;
-
-    final croppedFile = await ImageCropper().cropImage(
-      sourcePath: pickedFile.path,
-      compressFormat: ImageCompressFormat.jpg,
-      compressQuality: 100,
-      uiSettings: [
-        AndroidUiSettings(
-          toolbarTitle: 'crop and save',
-          toolbarColor: const Color.fromARGB(113, 255, 86, 34),
-          toolbarWidgetColor: Colors.white,
-          initAspectRatio: CropAspectRatioPreset.original,
-          lockAspectRatio: false,
-        ),
-        IOSUiSettings(
-          title: 'crop and save',
-        ),
-      ],
-    );
-
-    if (croppedFile == null) return;
-
-    final imageFile = File(croppedFile.path);
-    final base64 = await convertBase64(imageFile);
-
-    setState(() {
-      _selectedImage = File(croppedFile.path);
-      base64String = base64;
-    });
+    if (pickedFile != null) {
+      final imageFile = File(pickedFile.path);
+      final base64 = await convertBase64(imageFile);
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+        base64String = base64;
+      });
+    } else {
+      return;
+    }
   }
 
   @override
@@ -106,8 +66,6 @@ class _SearchByImageState extends ConsumerState<SearchByImage> {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
       if (_selectedImage == null || base64String == null) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -119,12 +77,15 @@ class _SearchByImageState extends ConsumerState<SearchByImage> {
         );
         return;
       }
-      await ref.read(provider.notifier).postImage(base64String!);
+      await ref
+          .read(provider.notifier)
+          .postImage(base64String ?? "Image_is_null");
 
       final vehicleState = ref.read(provider);
 
       vehicleState.when(
         data: (result) {
+          print("------------------------$result");
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -138,7 +99,8 @@ class _SearchByImageState extends ConsumerState<SearchByImage> {
         error: (error, stackTrace) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("Error: $error , stackTrace : $stackTrace"),
+              duration: Duration(seconds: 2),
+              content: Text("Error: $error ,"),
             ),
           );
         },
@@ -220,6 +182,7 @@ class _SearchByImageState extends ConsumerState<SearchByImage> {
                               onPressed: () {
                                 setState(() {
                                   _selectedImage = null;
+                                  base64String = null;
                                 });
                               },
                             ),
